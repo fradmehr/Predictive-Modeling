@@ -1,0 +1,77 @@
+import warnings
+warnings.filterwarnings('ignore')
+import numpy as np
+import pandas as pd
+from scipy import stats
+import statsmodels.api as sm
+import matplotlib.pyplot as plt
+
+%matplotlib inline
+
+# Import Prophet
+from fbprophet import Prophet
+import logging
+
+logging.getLogger().setLevel(logging.ERROR)
+
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from matplotlib import style
+
+#--------------------------------------------------------------------
+df = pd.read_csv('...')
+#--------------------------------------------------------------------
+# Linear Regression
+X = (df['Time_Code']).values
+y = (df['OA']).values
+X = X.reshape(-1,1)
+from sklearn.model_selection import train_test_split
+from sklearn import linear_model
+from sklearn import metrics
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.3, random_state=42)
+reg_all = linear_model.LinearRegression()
+reg_all.fit(X_train, y_train)
+print('-------------------------------------------')
+from sklearn import metrics 
+print('Root Mean Squared Error-Test:', np.sqrt(metrics.mean_squared_error(y_test, reg_all.predict(X_test))))
+
+mse = metrics.mean_squared_error(y_test, reg_all.predict(X_test))
+print('Mean Squared Error-Test:',mse)
+
+#-----------------------------------------------------------------------------
+# fit final model
+from sklearn import linear_model
+X = df.Time_Code.values
+y = (df.OA).values
+X = X.reshape(-1,1)
+model = linear_model.LinearRegression()
+
+model.fit(X, y)
+Xnew = [47,48,49,50,51]
+ynew = model.predict(X)
+for i in range(len(Xnew)):
+    print("X=%s, Predicted=%s" % (Xnew[i], ynew[i]))
+
+#-------------------------------------------------------------------------------------
+# ARIMA
+from statsmodels.tsa.arima.model import ARIMA
+from sklearn import metrics 
+# split into train and test sets
+X = df.OA.values
+size = int(len(X) * 0.7)
+train, test = X[0:size], X[size:len(X)]
+history = [x for x in train]
+predictions = list()
+# walk-forward validation
+for t in range(len(test)):
+    model = ARIMA(history, order=(1,1,2))
+    model_fit = model.fit()
+    output = model_fit.forecast()
+    yhat = output[0]
+    predictions.append(yhat)
+    obs = test[t]
+    history.append(obs)
+    print('predicted=%f, expected=%f' % (yhat, obs))
+# evaluate forecasts
+rmse = np.sqrt(metrics.mean_squared_error(test, predictions))
+print('Test MSE: %.3f' % rmse)
